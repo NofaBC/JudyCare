@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JudyCare™ Prototype</title>
+<style>
+:root{--bg:#f6fbfc;--p:#fff;--ink:#18343c;--m:#6a8087;--b:#117d83;--s:#e8f6f6;--line:#dce9ec;--warn:#fff5db;--danger:#fff0f0;--ok:#eaf8ef}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:12px 18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:800;font-size:20px}.brand small{display:block;color:var(--m);font-size:11px;font-weight:600}
+nav{display:flex;gap:6px;flex-wrap:wrap}nav button,.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 11px;color:var(--ink);font-weight:700;cursor:pointer}
+nav button.active,.btn.primary{background:var(--b);color:#fff;border-color:var(--b)}.btn.soft{background:var(--s);color:var(--b)}
+main{max-width:1180px;margin:auto;padding:22px}.notice{background:#fffdf2;border:1px solid #ecdfa2;padding:11px;border-radius:10px;margin-bottom:16px}
+.view{display:none}.view.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(24,52,60,.06)}
+.grid{display:grid;gap:12px}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.hero{display:grid;grid-template-columns:1.45fr .85fr;gap:14px}.hero h1{font-size:38px;margin:8px 0}.muted{color:var(--m)}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--b);font-weight:800}
+.metric b{display:block;font-size:28px;margin-top:5px}.section{margin:22px 0 10px}h2,h3{margin:6px 0 10px}
+.item{padding:11px;border:1px solid var(--line);border-radius:10px;margin:8px 0;background:#fff}.meta{font-size:12px;color:var(--m);margin-top:3px}
+.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:#eef3f4}.badge.warn{background:var(--warn);color:#765000}.badge.bad{background:var(--danger);color:#922}.badge.ok{background:var(--ok);color:#27643b}
+table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--m)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}textarea,input{width:100%;padding:10px;border:1px solid #cadde1;border-radius:9px;font:inherit}textarea{min-height:130px}
+.chat{height:560px;display:flex;flex-direction:column}.log{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:6px}.msg{padding:10px 12px;border-radius:12px;max-width:82%}.judy{background:var(--s)}.user{background:#edf3fb;align-self:flex-end}
+.split{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.callout{background:#f2f9fa;border:1px solid #d4ebed;padding:12px;border-radius:10px}.flag{border-left:4px solid #d79a23;padding-left:10px}
+.toast{position:fixed;right:18px;bottom:18px;background:#18343c;color:#fff;padding:11px 14px;border-radius:9px;opacity:0;transition:.2s}.toast.show{opacity:1}
+footer{max-width:1180px;margin:auto;padding:10px 22px 30px;color:var(--m);font-size:12px}
+@media(max-width:850px){.hero,.split,.g4,.g3,.g2{grid-template-columns:1fr}.hero h1{font-size:30px}main{padding:15px}}
+</style></head>
+<body>
+<header><div class="brand">JudyCare™<small>Your 24/7 Healthcare Administrative & Support Assistant</small></div><nav id="nav"></nav></header>
+<main>
+<div class="notice"><b>Interactive prototype.</b> All names, bills, claims, messages and records are fictional. Do not enter real patient information.</div>
+<section id="dashboard" class="view active"></section><section id="judy" class="view"></section><section id="inbox" class="view"></section><section id="bills" class="view"></section><section id="claims" class="view"></section><section id="appointments" class="view"></section><section id="tasks" class="view"></section><section id="documents" class="view"></section><section id="caregiver" class="view"></section><section id="settings" class="view"></section>
+</main>
+<footer>JudyCare™ helps organize healthcare administrative information, medical bills, insurance correspondence, appointments and related tasks. It does not provide diagnoses, treatment recommendations, legal advice, or guaranteed insurance/billing determinations. For emergencies, contact emergency services.</footer>
+<div class="toast" id="toast"></div>
+<script>
+const seed={
+ patient:"Margaret Collins",
+ appointments:[{date:"Nov 14, 2026 · 10:30 AM",provider:"Dr. Elena Morris",facility:"Northside Primary Care",paperwork:true},{date:"Dec 2, 2026 · 2:00 PM",provider:"Cardiology Associates",facility:"Rockville Medical Center",paperwork:false}],
+ bill:{provider:"Harborview Regional Hospital",date:"Oct 18, 2026",total:850,balance:220,analyzed:false,items:[["Emergency department","ED-240",460],["Laboratory panel","LAB-221",145],["Laboratory panel","LAB-221",145],["Radiology interpretation","RAD-110",100]],eob:{allowed:610,paid:390,adjustment:170,expectedPatient:50}},
+ claims:[{id:"CLM-8842",provider:"Metro Physical Therapy",amount:620,status:"Denied",reason:"Additional documentation requested",deadline:"Nov 25, 2026",draft:""},{id:"CLM-8810",provider:"Harborview Regional Hospital",amount:850,status:"Processed",deadline:""}],
+ inbox:[{id:"M1",from:"Northside Primary Care",subject:"Paperwork needed before your Nov. 14 appointment",type:"Appointment",body:"Complete the medication reconciliation form and updated contact form by Nov. 13.",handled:false},{id:"M2",from:"Horizon Health Plan",subject:"Claim CLM-8842 — additional information required",type:"Insurance",body:"Claim denied pending supporting documentation. Appeal deadline Nov. 25, 2026.",handled:false},{id:"M3",from:"Harborview Regional Hospital Billing",subject:"Balance due: $220",type:"Billing",body:"Our records show a patient balance of $220 for the Oct. 18 visit.",handled:false}],
+ tasks:[{id:"T1",title:"Complete Nov. 14 appointment paperwork",due:"Nov 13, 2026",status:"Action Required"},{id:"T2",title:"Review denied claim CLM-8842",due:"Nov 25, 2026",status:"Action Required"},{id:"T3",title:"Review Harborview hospital bill",due:"Nov 20, 2026",status:"Action Required"}],
+ cases:[{id:"CASE-1001",title:"Harborview bill review",status:"New",next:"Analyze bill against EOB",due:"Nov 20, 2026"}],
+ chat:[{who:"judy",text:"Hi Margaret. I can help organize appointments, bills, insurance correspondence, paperwork, reminders and follow-ups. What would you like to handle first?"}],
+ gmail:false
+};
+let S=(()=>{try{return JSON.parse(localStorage.getItem("judycare-demo"))||structuredClone(seed)}catch(e){return structuredClone(seed)}})();
+const nav=[["dashboard","Dashboard"],["judy","Ask Judy"],["inbox","Healthcare Inbox"],["bills","BillGuard"],["claims","Insurance & Claims"],["appointments","Appointments"],["tasks","Tasks & Cases"],["documents","Documents & Uploads"],["caregiver","Caregiver Mode"],["settings","Settings"]];
+function esc(x){return String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function save(){localStorage.setItem("judycare-demo",JSON.stringify(S));render()}
+function go(id){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.id===id));scrollTo(0,0)}
+function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
+function badge(x){let c=/completed|processed|approved/i.test(x)?"ok":/denied|action required|needs review/i.test(x)?"bad":"warn";return `<span class="badge ${c}">${esc(x)}</span>`}
+function renderNav(){document.getElementById("nav").innerHTML=nav.map(([i,l],k)=>`<button data-id="${i}" class="${k?"":"active"}">${l}</button>`).join("");document.getElementById("nav").onclick=e=>{if(e.target.dataset.id)go(e.target.dataset.id)}}
+function dashboard(){
+ let open=S.tasks.filter(x=>x.status!=="Completed").length;
+ return `<div class="hero"><div class="card"><div class="eyebrow">Patient-controlled healthcare administration</div><h1>Good morning, ${esc(S.patient.split(" ")[0])}.</h1><p class="muted">Doctors manage medical care. <b>JudyCare™ manages the administrative work surrounding it.</b></p><div class="actions"><button class="btn primary" onclick="go('judy')">Ask Judy</button><button class="btn soft" onclick="go('bills')">Review Medical Bill</button><button class="btn" onclick="go('inbox')">Open Inbox</button></div></div><div class="card"><div class="eyebrow">Today's priority</div><div class="item"><b>Hospital bill needs review</b><div class="meta">Potential duplicate charge and adjustment discrepancy.</div></div><div class="item"><b>Insurance appeal deadline</b><div class="meta">CLM-8842 · Nov 25.</div></div><div class="item"><b>Appointment paperwork</b><div class="meta">Due Nov 13.</div></div></div></div>
+ <h2 class="section">Administrative overview</h2><div class="grid g4"><div class="card metric">Upcoming appointments<b>${S.appointments.length}</b></div><div class="card metric">Medical bill balance<b>$${S.bill.balance}</b></div><div class="card metric">Denied claims<b>${S.claims.filter(x=>x.status==="Denied").length}</b></div><div class="card metric">Open tasks<b>${open}</b></div></div>`;
+}
+function answer(q){q=q.toLowerCase();if(q.includes("today"))return `You have ${S.tasks.filter(x=>x.status!=="Completed").length} open administrative tasks. Highest priorities are appointment paperwork, the Harborview bill review, and claim CLM-8842.`;if(q.includes("appointment"))return `Your next appointment is ${S.appointments[0].date} with ${S.appointments[0].provider}. Paperwork is due Nov. 13.`;if(q.includes("bill")||q.includes("duplicate"))return `The sample Harborview bill shows two LAB-221 charges of $145 and a possible adjustment mismatch. These are potential discrepancies requiring verification, not confirmed errors.`;if(q.includes("claim")||q.includes("denied"))return `Claim CLM-8842 is denied pending additional documentation. The sample appeal deadline is Nov. 25, 2026.`;if(q.includes("message")||q.includes("email"))return `${S.inbox.filter(x=>!x.handled).length} administrative messages still need review.`;return "I can help with appointments, bills, insurance claims, administrative messages, paperwork, tasks and reminders. I do not provide medical advice."}
+function ask(q){S.chat.push({who:"user",text:q},{who:"judy",text:answer(q)});save()}
+function send(){let i=document.getElementById("q");let q=i.value.trim();if(q)ask(q)}
+function judy(){return `<div class="split"><div class="card chat"><div class="eyebrow">Ask Judy</div><h2>Administrative assistant</h2><div class="actions">${["What do I need to do today?","Are there any billing errors?","Which claims were denied?","When is my next appointment?"].map(q=>`<button class="btn" onclick='ask(${JSON.stringify(q)})'>${q}</button>`).join("")}</div><div class="log">${S.chat.map(m=>`<div class="msg ${m.who}">${esc(m.text)}</div>`).join("")}</div><div class="actions"><input id="q" placeholder="Ask about bills, claims, appointments or paperwork"><button class="btn primary" onclick="send()">Send</button></div><div class="meta">Scripted prototype responses — not live AI.</div></div><div class="card"><h3>Judy can help with</h3><div class="item"><b>BillGuard</b><div class="meta">Compare sample bills and EOBs.</div></div><div class="item"><b>Insurance appeals</b><div class="meta">Prepare editable administrative drafts.</div></div><div class="item"><b>Inbox triage</b><div class="meta">Extract actions and deadlines.</div></div><div class="item"><b>Case tracking</b><div class="meta">Track administrative issues through resolution.</div></div></div></div>`}
+function inbox(){return `<div class="actions" style="justify-content:space-between"><div><div class="eyebrow">Patient-owned email concept</div><h2>My Healthcare Inbox</h2></div><button class="btn ${S.gmail?"soft":"primary"}" onclick="S.gmail=!S.gmail;save();toast('Gmail connection simulated')">${S.gmail?"✓ Simulated Gmail Connected":"Connect Gmail (Simulation)"}</button></div><div class="callout">No Google OAuth or Gmail API is used in this prototype.</div><div class="grid g2" style="margin-top:12px"><div class="card">${S.inbox.map(m=>`<button class="item" style="width:100%;text-align:left" onclick="openMsg('${m.id}')"><b>${esc(m.subject)}</b><div class="meta">${esc(m.from)} · ${esc(m.type)}</div></button>`).join("")}</div><div class="card" id="msgDetail"><span class="muted">Select a message for Judy's administrative review.</span></div></div>`}
+function openMsg(id){let m=S.inbox.find(x=>x.id===id);document.getElementById("msgDetail").innerHTML=`<div class="eyebrow">Judy message review</div><h2>${esc(m.subject)}</h2><p>${esc(m.body)}</p><div class="item"><b>Administrative purpose</b><div class="meta">${esc(m.type)}</div></div><div class="item"><b>Suggested next step</b><div class="meta">${m.type==="Insurance"?"Review denial and prepare appeal.":m.type==="Appointment"?"Complete requested paperwork.":"Compare balance with bill and EOB."}</div></div><div class="actions"><button class="btn primary" onclick="taskFromMsg('${m.id}')">Create Task</button><button class="btn soft" onclick="draftReply('${m.id}')">Draft Response</button></div><div id="draft"></div>`}
+function taskFromMsg(id){let m=S.inbox.find(x=>x.id===id);m.handled=true;if(!S.tasks.some(x=>x.id==="TM"+id))S.tasks.push({id:"TM"+id,title:"Follow up: "+m.subject,due:m.type==="Insurance"?"Nov 25, 2026":m.type==="Appointment"?"Nov 13, 2026":"Nov 20, 2026",status:"Action Required"});save();toast("Administrative task created")}
+function draftReply(id){let m=S.inbox.find(x=>x.id===id);document.getElementById("draft").innerHTML=`<h3>Editable draft</h3><textarea>Hello,&#10;&#10;Thank you for your message regarding "${esc(m.subject)}". I am reviewing the requested information and will follow up as needed. Please let me know if any additional administrative documents are required.&#10;&#10;Thank you.</textarea><div class="actions"><button class="btn soft" onclick="toast('Approved for demo — nothing was sent')">Review & Approve</button></div><div class="meta">No email is transmitted.</div>`}
+function billAnalysis(){let b=S.bill;let gap=(b.total-b.eob.allowed)-b.eob.adjustment;return `<div class="eyebrow">Potential discrepancies</div><h2>$${145+gap} requires clarification</h2><div class="flag"><b>Duplicate pattern</b><div class="meta">LAB-221 appears twice at $145. Judy is flagging it for verification, not declaring it invalid.</div></div><div class="flag" style="margin-top:10px"><b>Adjustment mismatch</b><div class="meta">Billed $850 − allowed $610 = $240 expected adjustment. Sample EOB shows $170, a $${gap} difference to clarify.</div></div><div class="callout" style="margin-top:10px">This is not guaranteed savings or a definitive billing determination.</div><div class="actions"><button class="btn primary" onclick="billingDraft()">Prepare Billing Inquiry</button><button class="btn soft" onclick="billingCase()">Create Follow-Up Case</button></div><div id="billDraft"></div>`}
+function bills(){let b=S.bill;return `<div class="eyebrow">Flagship feature</div><h2>JudyCare™ BillGuard</h2><div class="split"><div class="card"><h3>${b.provider}</h3><div class="meta">${b.date} · Sample total $${b.total}</div><table><tr><th>Service</th><th>Code</th><th>Amount</th></tr>${b.items.map(i=>`<tr><td>${i[0]}</td><td>${i[1]}</td><td>$${i[2]}</td></tr>`).join("")}</table><div class="actions"><button class="btn primary" onclick="S.bill.analyzed=true;save();toast('Sample bill analyzed')">Analyze Bill</button></div></div><div class="card">${b.analyzed?billAnalysis():`<div class="eyebrow">BillGuard analysis</div><h3>Ready to review</h3><p class="muted">Analyze the sample bill against its sample EOB.</p>`}</div></div>`}
+function billingDraft(){document.getElementById("billDraft").innerHTML=`<h3>Editable billing inquiry</h3><textarea>Subject: Request for itemized bill review — Oct. 18, 2026&#10;&#10;Please review the Oct. 18 bill. The statement appears to list LAB-221 twice at $145 each, and the adjustment shown does not match the difference between the billed and allowed amounts. Please clarify these items and provide an updated explanation if appropriate.</textarea><div class="actions"><button class="btn soft" onclick="toast('Approved for demo — nothing was transmitted')">Review & Approve</button></div>`}
+function billingCase(){if(!S.cases.some(x=>x.id==="CASE-1002"))S.cases.push({id:"CASE-1002",title:"Potential duplicate lab charge / adjustment discrepancy",status:"Awaiting Patient Approval",next:"Approve billing inquiry",due:"Nov 20, 2026"});save();toast("Follow-up case created")}
+function claims(){return `<h2>Insurance & Claims</h2><div class="grid g3"><div class="card metric">Deductible<b>$1,240 / $2,000</b></div><div class="card metric">Out-of-pocket<b>$2,880 / $6,500</b></div><div class="card metric">Denied claims<b>${S.claims.filter(x=>x.status==="Denied").length}</b></div></div><div class="card" style="margin-top:12px"><table><tr><th>Claim</th><th>Provider</th><th>Amount</th><th>Status</th><th>Deadline</th><th></th></tr>${S.claims.map(c=>`<tr><td>${c.id}</td><td>${c.provider}</td><td>$${c.amount}</td><td>${badge(c.status)}</td><td>${c.deadline||"—"}</td><td>${c.status==="Denied"?`<button class="btn primary" onclick="appeal('${c.id}')">Prepare Appeal</button>`:""}</td></tr>`).join("")}</table></div><div id="appeal"></div>`}
+function appeal(id){let c=S.claims.find(x=>x.id===id);c.draft=`Subject: Appeal request for ${c.id}\n\nI am requesting review of the denial associated with ${c.id}. The notice states: "${c.reason}". Please confirm the specific documentation required and reconsider the claim when the requested information is available.`;save();setTimeout(()=>document.getElementById("appeal").innerHTML=`<div class="card" style="margin-top:12px"><h3>Editable appeal draft</h3><textarea>${esc(c.draft)}</textarea><div class="actions"><button class="btn primary" onclick="approveAppeal('${id}')">Review & Approve</button></div><div class="meta">Nothing is transmitted in this prototype.</div></div>`,0)}
+function approveAppeal(id){if(!S.cases.some(x=>x.id==="CASE-"+id))S.cases.push({id:"CASE-"+id,title:"Insurance appeal "+id,status:"Awaiting Provider Response",next:"Await insurer response",due:"Nov 25, 2026"});save();toast("Appeal approved for demo tracking")}
+function appointments(){return `<h2>Appointments</h2><div class="grid g2">${S.appointments.map(a=>`<div class="card"><div class="eyebrow">${a.date}</div><h3>${a.provider}</h3><p>${a.facility}</p><div class="item"><b>Preparation</b><div class="meta">${a.paperwork?"Paperwork required before visit":"No paperwork currently required"}</div></div><button class="btn soft" onclick="toast('Reminder created')">Create Reminder</button></div>`).join("")}</div>`}
+function tasks(){return `<div class="split"><div class="card"><h2>My Healthcare Tasks</h2>${S.tasks.map(t=>`<div class="item"><b>${esc(t.title)}</b><div class="meta">Due ${t.due} · ${t.status}</div><div class="actions"><button class="btn" onclick="let x=S.tasks.find(v=>v.id==='${t.id}');x.status='Completed';save();toast('Task completed')">Mark Complete</button></div></div>`).join("")}</div><div class="card"><h2>Administrative Cases</h2>${S.cases.map(c=>`<div class="item"><b>${c.id} · ${esc(c.title)}</b><div class="meta">${c.status} · Due ${c.due}</div><div class="meta">Next: ${esc(c.next)}</div></div>`).join("")}</div></div>`}
+function caregiver(){return `<div class="eyebrow">Simulated authorization active</div><h2>Caregiver Mode</h2><div class="callout">Real caregiver access would require patient consent, secure authentication and role-based authorization.</div><div class="grid g4" style="margin-top:12px"><div class="card metric">Appointments<b>${S.appointments.length}</b></div><div class="card metric">Open tasks<b>${S.tasks.filter(x=>x.status!=="Completed").length}</b></div><div class="card metric">Billing issues<b>${S.bill.analyzed?1:1}</b></div><div class="card metric">Denied claims<b>${S.claims.filter(x=>x.status==="Denied").length}</b></div></div><div class="grid g2" style="margin-top:12px"><div class="card"><h3>Coordination priorities</h3><div class="item">Nov. 14 paperwork due Nov. 13</div><div class="item">Harborview billing review</div><div class="item">CLM-8842 appeal deadline Nov. 25</div></div><div class="card"><h3>Recent activity</h3><div class="item">Healthcare inbox triaged</div><div class="item">Hospital bill queued for review</div></div></div>`}
+// Session-only document upload: file bytes never leave the browser or enter localStorage.
+const uploadedDocs = [];
+const sampleDocs = [
+ {name:'Harborview Hospital Bill',kind:'Medical Bill',related:'CASE-1001',summary:'Fictional hospital statement for $850; includes two LAB-221 entries.'},
+ {name:'Horizon Health EOB — Oct 18',kind:'Explanation of Benefits',related:'CASE-1001',summary:'Fictional EOB: allowed $610, insurer paid $390, adjustment $170.'},
+ {name:'Claim Denial — CLM-8842',kind:'Insurance Letter',related:'CLM-8842',summary:'Fictional notice: additional documentation requested; deadline Nov 25, 2026.'},
+ {name:'Medication Reconciliation Form',kind:'Appointment Form',related:'Appointment · Nov 14',summary:'Fictional appointment preparation form due Nov 13, 2026.'}
+];
+const documentKinds=['Medical Bill','Explanation of Benefits','Insurance Letter','Referral','Appointment Form','Administrative Letter','Other'];
+function documents(){
+ const cases=S.cases.map(c=>({id:c.id,label:c.id+' — '+c.title}));
+ return `<div class="section"><div class="eyebrow">Patient-controlled document workspace</div><h2>Documents & Uploads</h2><p class="muted">Add demo paperwork, review sample documents, and associate documents with administrative cases. Judy can help organize next steps.</p></div>
+ <div class="callout" role="note"><b>Privacy — prototype only:</b> Use fictional or test documents, not actual patient records. Files are processed locally for a temporary preview only; contents are never uploaded, analyzed by AI, or saved to localStorage. Uploaded files disappear when the page is refreshed or closed.</div>
+ <div class="grid g2" style="margin-top:12px">
+ <div class="card">
+ <h3>Upload a demonstration document</h3>
+ <label for="docFile" style="display:block;margin:8px 0">Choose a file (PDF, PNG, JPG, TXT; maximum 5 MB)</label>
+ <input id="docFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,application/pdf,image/png,image/jpeg,text/plain" aria-describedby="uploadHint">
+ <p class="meta" id="uploadHint">Only use non-sensitive sample documents. File contents remain in this browser tab.</p>
+ <label for="docType" style="display:block;margin:10px 0 5px">Document category</label>
+ <select id="docType" style="width:100%;padding:10px;border:1px solid #cadde1;border-radius:9px">${documentKinds.map(k=>`<option>${esc(k)}</option>`).join('')}</select>
+ <label for="docCase" style="display:block;margin:10px 0 5px">Related case</label>
+ <select id="docCase" style="width:100%;padding:10px;border:1px solid #cadde1;border-radius:9px"><option value="">No related case</option>${cases.map(c=>`<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('')}</select>
+ <div class="actions"><button class="btn primary" onclick="uploadDemoDocument()">Add to Document List</button></div>
+ </div>
+ <div class="card"><h3>Document library</h3><p class="meta">${sampleDocs.length} built-in samples · ${uploadedDocs.length} temporary upload(s)</p>
+ ${sampleDocs.map((d,i)=>`<div class="item"><b>${esc(d.name)}</b><div class="meta">${esc(d.kind)} · Linked: ${esc(d.related)}</div><div class="actions"><button class="btn soft" onclick="previewSampleDocument(${i})">View Sample</button></div></div>`).join('')}
+ ${uploadedDocs.length?uploadedDocs.map(d=>`<div class="item"><b>${esc(d.name)}</b><div class="meta">${esc(d.kind)} · ${(d.file.size/1024).toFixed(1)} KB · ${esc(d.related||'Unlinked')} · Session only</div><div class="actions"><button class="btn soft" onclick="previewUploadedDocument('${d.id}')">Preview</button><button class="btn" onclick="linkUploadedDocument('${d.id}')">Link to Case</button><button class="btn" onclick="removeUploadedDocument('${d.id}')">Remove</button></div></div>`).join(''):'<p class="meta">No temporary uploads in this session.</p>'}
+ </div></div><div class="card" id="documentPreview" style="margin-top:12px"><span class="muted">Choose a document to view its demonstration details.</span></div>`;
+}
+function uploadDemoDocument(){
+ const input=document.getElementById('docFile'); const file=input?.files?.[0];
+ if(!file){toast('Choose a demo file first');return;}
+ const name=file.name.toLowerCase();
+ if(!/\.(pdf|png|jpg|jpeg|txt)$/.test(name) || !['application/pdf','image/png','image/jpeg','text/plain',''].includes(file.type)){
+  toast('Only PDF, PNG, JPG, or TXT demo files are supported');return;
+ }
+ if(file.size>5*1024*1024){toast('Maximum file size is 5 MB');return;}
+ uploadedDocs.push({id:'DOC-'+Date.now(),file,name:file.name,kind:document.getElementById('docType').value,related:document.getElementById('docCase').value});
+ render();toast('Demo document added locally for this session');
+}
+function previewSampleDocument(i){
+ const d=sampleDocs[i]; if(!d)return;
+ document.getElementById('documentPreview').innerHTML=`<div class="eyebrow">Fictional sample document</div><h3>${esc(d.name)}</h3><div class="meta">${esc(d.kind)} · Related: ${esc(d.related)}</div><p>${esc(d.summary)}</p><div class="actions"><button class="btn soft" onclick="go('${d.kind==='Medical Bill'||d.kind==='Explanation of Benefits'?'bills':d.kind==='Insurance Letter'?'claims':'appointments'}')">Open Related Module</button></div>`;
+}
+let activePreviewURL = null;
+function previewUploadedDocument(id){
+ const d=uploadedDocs.find(x=>x.id===id); if(!d)return;
+ if(activePreviewURL){URL.revokeObjectURL(activePreviewURL);activePreviewURL=null;}
+ let preview='';
+ if(d.file.type==='application/pdf'||/\.pdf$/i.test(d.name)){
+  activePreviewURL=URL.createObjectURL(d.file);
+  preview=`<iframe src="${activePreviewURL}" title="Local PDF preview" style="width:100%;height:480px;border:1px solid #dce9ec;border-radius:8px"></iframe>`;
+ } else if(d.file.type.startsWith('image/')){
+  activePreviewURL=URL.createObjectURL(d.file);
+  preview=`<img src="${activePreviewURL}" alt="Local document preview" style="max-width:100%;max-height:480px;object-fit:contain">`;
+ } else if(/\.txt$/i.test(d.name)){
+  d.file.text().then(t=>{const el=document.getElementById('localTextPreview');if(el)el.textContent=t.slice(0,12000)+(t.length>12000?'\n[Preview truncated]':'')});
+  preview='<pre id="localTextPreview" style="white-space:pre-wrap;overflow:auto;max-height:400px"></pre>';
+ }
+ document.getElementById('documentPreview').innerHTML=`<div class="eyebrow">Temporary local preview</div><h3>${esc(d.name)}</h3><p class="meta">Category: ${esc(d.kind)} · Case: ${esc(d.related||'Not linked')} · Not sent or saved</p>${preview}`;
+}
+function linkUploadedDocument(id){
+ const d=uploadedDocs.find(x=>x.id===id);if(!d)return;
+ const choices=S.cases.map(c=>c.id).join(', ');
+ const input=prompt('Enter an existing case ID ('+choices+')',d.related||S.cases[0]?.id||'');
+ if(input===null)return;
+ if(input && !S.cases.some(c=>c.id===input)){toast('Please enter an existing case ID');return;}
+ d.related=input;render();toast('Document linked in this session');
+}
+function removeUploadedDocument(id){
+ const i=uploadedDocs.findIndex(x=>x.id===id);if(i<0)return;
+ uploadedDocs.splice(i,1);
+ if(activePreviewURL){URL.revokeObjectURL(activePreviewURL);activePreviewURL=null;}
+ render();toast('Temporary document removed');
+}
+function settings(){return `<h2>Settings & Prototype Boundaries</h2><div class="grid g2"><div class="card"><h3>Privacy</h3><p class="muted">Demo state is stored only in this browser using localStorage.</p><div class="actions"><button class="btn" onclick="let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='judycare-demo.json';a.click();toast('Demo JSON exported')">Export Demo Data</button><button class="btn" onclick="if(confirm('Reset demo?')){localStorage.removeItem('judycare-demo');location.reload()}">Reset Demo</button></div></div><div class="card"><h3>Safety boundaries</h3><div class="item">No diagnosis or treatment advice.</div><div class="item">No automatic email, payments or insurance submission. Uploaded document bytes stay in memory only and are discarded on refresh.</div><div class="item">No claim of HIPAA compliance for this prototype.</div><div class="item">Potential billing discrepancies require human verification.</div></div></div>`}
+function render(){document.getElementById("dashboard").innerHTML=dashboard();document.getElementById("judy").innerHTML=judy();document.getElementById("inbox").innerHTML=inbox();document.getElementById("bills").innerHTML=bills();document.getElementById("claims").innerHTML=claims();document.getElementById("appointments").innerHTML=appointments();document.getElementById("tasks").innerHTML=tasks();document.getElementById("documents").innerHTML=documents();document.getElementById("caregiver").innerHTML=caregiver();document.getElementById("settings").innerHTML=settings()}
+renderNav();render();
+</script></body></html>
